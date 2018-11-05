@@ -1,11 +1,14 @@
 install.packages("MASS")
 install.packages("randomForest")
+install.packages("pROC")
 
 library(caTools)
 library(randomForest)
 library(MASS)
+library(pROC)
 
-set.seed(123)
+
+caset.seed(123)
 
 df<-birthwt
 
@@ -47,6 +50,39 @@ modelRandom<-randomForest(low~.,data=traindf,mtry=3,ntree=20)
 #ntree=no. of trees to grow
 #nodsize=minimum size of terminal nodes
 
+
+### Forest error rate
+#OOB (Out of bag error-misclassification rate)
+#Each tree is tested on 1/3rd of the no. the observations
+# that means 2/3 of samples used to build a model
+# this is default value
+
+# high strength of tree will have lower error [depends on mtry]
+# high correlation between trees increases the error [depends on mtry]
+
+
+#check important variables
+importance(modelRandom)
+varImpPlot(modelRandom)
+
+#Predictions 
+PredictionsWithClass<-predict(modelRandom,testind,type = 'class')
+t<-table(predictions=PredictionsWithClass,actual=testind$low)
+
+#accuracy
+sum(diag(t)/sum(t))
+
+#ROC
+PredictionsWithProbs<-predict(modelRandom,testind,type = 'prob')
+auc<-auc(testind$low,PredictionsWithProbs[,2])
+plot(roc(testind$low,PredictionsWithProbs[,2]))
+
+#find best mtry
+bestmtry<-tuneRF(traindf,traindf$low,ntreeTry = 20,stepFactor = 1.2,improve = 0.01, trace = TRUE, plot = TRUE)
+
+#One of the drawbacks of randomforest is if certain catagorical
+#variable has many levels then random forest is biased towards using this variable
+# in trees
 
 
 
